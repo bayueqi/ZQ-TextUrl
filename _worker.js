@@ -2527,10 +2527,17 @@ export default {
           }
         });
       } else {
-        // 是文本，显示内容
+        // 按扩展名返回 MIME，否则 CSS 会被浏览器拒绝应用
+        const mime = {
+          css: 'text/css; charset=utf-8',
+          js: 'text/javascript; charset=utf-8',
+          json: 'application/json; charset=utf-8',
+          svg: 'image/svg+xml'
+        }[(id.split('.').pop() || '').toLowerCase()] || 'text/plain; charset=utf-8';
         return new Response(content, { 
           headers: { 
-            'content-type': 'text/plain; charset=utf-8',
+            'content-type': mime,
+            'Cache-Control': 'public, max-age=300',
             ...corsHeaders
           } 
         });
