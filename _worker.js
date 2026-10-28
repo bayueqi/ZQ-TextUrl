@@ -648,6 +648,41 @@ const html = `
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
+    
+    /* 二维码 */
+    .qr-box {
+      position: relative;
+      display: inline-block;
+      line-height: 0;
+    }
+    
+    .qr-box svg {
+      display: block;
+    }
+    
+    .qr-badge {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 22%;
+      aspect-ratio: 1;
+      padding: 4px;
+      box-sizing: border-box;
+      border-radius: 8px;
+      background: #ffffff;
+      transform: translate(-50%, -50%);
+    }
+    
+    .qr-badge svg,
+    .qr-badge img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
   </style>
   <script async src="https://cdn.jsdelivr.net/npm/qrcode-svg@1.1.0/dist/qrcode.min.js"></script>
 </head>
@@ -1188,17 +1223,7 @@ const html = `
           // 生成二维码
           const qrCodeContainer = document.getElementById('paste-qrcode');
           if (qrCodeContainer) {
-            qrCodeContainer.innerHTML = '';
-            const qrCodeUrl = location.origin + '/' + id;
-            const qr = new QRCode({
-              content: qrCodeUrl,
-              padding: 4,
-              width: 200,
-              height: 200,
-              color: '#000000',
-              background: '#FFFFFF'
-            });
-            qrCodeContainer.innerHTML = qr.svg();
+            renderQR(qrCodeContainer, location.origin + '/' + id, 200);
           }
           
           // 隐藏其他可能显示的内容
@@ -1242,6 +1267,49 @@ const html = `
       }
     }
     
+    // 把页面 head 里的站点图标放进二维码中心，换图标只需改 favicon 一处
+    function appendQrBadge(box) {
+      const link = document.querySelector('link[rel="icon"]');
+      const href = link ? (link.getAttribute('href') || '') : '';
+      if (!href) return;
+      const badge = document.createElement('span');
+      badge.className = 'qr-badge';
+      const marker = href.indexOf('utf8,');
+      if (marker !== -1) {
+        try {
+          badge.innerHTML = decodeURIComponent(href.slice(marker + 5));
+        } catch (error) {
+          return;
+        }
+      } else {
+        const img = document.createElement('img');
+        img.src = href;
+        img.alt = '';
+        badge.appendChild(img);
+      }
+      box.appendChild(badge);
+    }
+
+    // 二维码统一走这里：H 级纠错 + 中心图标，两处调用共用
+    function renderQR(container, url, size) {
+      if (!container) return;
+      container.innerHTML = '';
+      const qr = new QRCode({
+        content: url,
+        padding: 4,
+        width: size,
+        height: size,
+        color: '#000000',
+        background: '#FFFFFF',
+        ecl: 'H'
+      });
+      const box = document.createElement('div');
+      box.className = 'qr-box';
+      box.innerHTML = qr.svg();
+      appendQrBadge(box);
+      container.appendChild(box);
+    }
+
     function showQRCode(id) {
       // 创建二维码模态框
       const qrModal = document.createElement('div');
@@ -1272,15 +1340,7 @@ const html = `
       
       // 生成二维码
       try {
-        const qr = new QRCode({
-          content: qrCodeUrl,
-          padding: 4,
-          width: 250,
-          height: 250,
-          color: '#000000',
-          background: '#FFFFFF'
-        });
-        qrCodeContainer.innerHTML = qr.svg();
+        renderQR(qrCodeContainer, qrCodeUrl, 250);
       } catch (error) {
         console.error('生成二维码失败:', error);
         qrCodeContainer.innerHTML = '<p style="color: #ff6b6b;">生成二维码失败</p>';
